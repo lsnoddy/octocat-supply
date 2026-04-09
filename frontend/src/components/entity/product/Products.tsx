@@ -21,11 +21,59 @@ const fetchProducts = async (): Promise<Product[]> => {
   return data;
 };
 
+interface StarRatingProps {
+  productName: string;
+  rating: number;
+  hoveredRating: number;
+  onRate: (rating: number) => void;
+  onHover: (rating: number) => void;
+  size?: 'sm' | 'lg';
+}
+
+function StarRating({ productName, rating, hoveredRating, onRate, onHover, size = 'sm' }: StarRatingProps) {
+  const displayRating = hoveredRating || rating;
+  const starClass = size === 'lg' ? 'text-5xl' : 'text-3xl';
+
+  return (
+    <div className="flex items-center space-x-1 my-2">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRate(star);
+          }}
+          onMouseEnter={() => onHover(star)}
+          onMouseLeave={() => onHover(0)}
+          className={`${starClass} transition-all duration-150 transform hover:scale-125 active:scale-150 focus:outline-none cursor-pointer`}
+          style={{
+            color: displayRating >= star ? '#ef4444' : '#9ca3af',
+            filter: displayRating >= star
+              ? 'drop-shadow(0 0 6px rgba(239, 68, 68, 0.9)) drop-shadow(0 0 12px rgba(239, 68, 68, 0.5))'
+              : 'none',
+          }}
+          aria-label={`Rate ${productName} ${star} out of 5 stars`}
+          aria-pressed={rating === star}
+        >
+          ★
+        </button>
+      ))}
+      {rating > 0 && (
+        <span className="text-red-500 text-sm font-bold ml-2">
+          {rating}/5
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function Products() {
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [ratings, setRatings] = useState<Record<number, number>>({});
+  const [hoveredRatings, setHoveredRatings] = useState<Record<number, number>>({});
   const { data: products, isLoading, error } = useQuery('products', fetchProducts);
   const { darkMode } = useTheme();
 
@@ -64,6 +112,10 @@ export default function Products() {
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
     setShowModal(true);
+  };
+
+  const handleRating = (productId: number, rating: number) => {
+    setRatings((prev) => ({ ...prev, [productId]: rating }));
   };
 
   if (isLoading) {
@@ -189,6 +241,13 @@ export default function Products() {
                   >
                     {product.description}
                   </p>
+                  <StarRating
+                    productName={product.name}
+                    rating={ratings[product.productId] || 0}
+                    hoveredRating={hoveredRatings[product.productId] || 0}
+                    onRate={(star) => handleRating(product.productId, star)}
+                    onHover={(star) => setHoveredRatings((prev) => ({ ...prev, [product.productId]: star }))}
+                  />
                   <div className="space-y-4 mt-auto">
                     <div className="flex justify-between items-center">
                       {hasDiscount ? (
@@ -301,6 +360,21 @@ export default function Products() {
             >
               {selectedProduct.description}
             </p>
+            <div className="mt-4">
+              <p className={`text-sm font-semibold ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
+                Your Rating:
+              </p>
+              <StarRating
+                productName={selectedProduct.name}
+                rating={ratings[selectedProduct.productId] || 0}
+                hoveredRating={hoveredRatings[selectedProduct.productId] || 0}
+                onRate={(star) => handleRating(selectedProduct.productId, star)}
+                onHover={(star) =>
+                  setHoveredRatings((prev) => ({ ...prev, [selectedProduct.productId]: star }))
+                }
+                size="lg"
+              />
+            </div>
           </div>
         </div>
       )}
