@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useQuery } from 'react-query';
 import { api } from '../../../api/config';
@@ -16,6 +16,63 @@ interface Product {
   discount?: number;
 }
 
+const RATINGS_KEY = 'product_ratings';
+
+function loadRatings(): Record<number, number> {
+  try {
+    const stored = localStorage.getItem(RATINGS_KEY);
+    return stored ? (JSON.parse(stored) as Record<number, number>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveRatings(ratings: Record<number, number>): void {
+  localStorage.setItem(RATINGS_KEY, JSON.stringify(ratings));
+}
+
+interface StarRatingProps {
+  productId: number;
+  rating: number;
+  hovered: number;
+  onRate: (productId: number, star: number) => void;
+  onHover: (productId: number, star: number) => void;
+  onLeave: (productId: number) => void;
+}
+
+function StarRating({ productId, rating, hovered, onRate, onHover, onLeave }: StarRatingProps) {
+  const active = hovered > 0 ? hovered : rating;
+  return (
+    <div
+      className="flex items-center gap-1"
+      role="group"
+      aria-label={`Rate ${productId}: current rating ${rating} out of 5 stars`}
+      onMouseLeave={() => onLeave(productId)}
+    >
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
+          data-testid={`star-${productId}-${star}`}
+          onClick={() => onRate(productId, star)}
+          onMouseEnter={() => onHover(productId, star)}
+          className={[
+            'text-3xl leading-none transition-all duration-150 cursor-pointer select-none',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded-sm',
+            'hover:scale-125 active:scale-110',
+            star <= active
+              ? 'text-red-600 drop-shadow-[0_0_8px_rgba(220,38,38,0.85)] scale-110'
+              : 'text-gray-400 hover:text-red-400',
+          ].join(' ')}
+        >
+          ★
+        </button>
+      ))}
+    </div>
+  );
+}
+
 const fetchProducts = async (): Promise<Product[]> => {
   const { data } = await axios.get(`${api.baseURL}${api.endpoints.products}`);
   return data;
@@ -26,8 +83,26 @@ export default function Products() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [ratings, setRatings] = useState<Record<number, number>>(loadRatings);
+  const [hoveredStars, setHoveredStars] = useState<Record<number, number>>({});
   const { data: products, isLoading, error } = useQuery('products', fetchProducts);
   const { darkMode } = useTheme();
+
+  useEffect(() => {
+    saveRatings(ratings);
+  }, [ratings]);
+
+  const handleRate = (productId: number, star: number) => {
+    setRatings((prev) => ({ ...prev, [productId]: star }));
+  };
+
+  const handleStarHover = (productId: number, star: number) => {
+    setHoveredStars((prev) => ({ ...prev, [productId]: star }));
+  };
+
+  const handleStarLeave = (productId: number) => {
+    setHoveredStars((prev) => ({ ...prev, [productId]: 0 }));
+  };
 
   const filteredProducts = products?.filter(
     (product) =>
@@ -185,10 +260,25 @@ export default function Products() {
                     {product.name}
                   </h3>
                   <p
-                    className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-4 flex-grow transition-colors duration-300`}
+                    className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-3 flex-grow transition-colors duration-300`}
                   >
                     {product.description}
                   </p>
+                  <div className="mb-3">
+                    <StarRating
+                      productId={product.productId}
+                      rating={ratings[product.productId] ?? 0}
+                      hovered={hoveredStars[product.productId] ?? 0}
+                      onRate={handleRate}
+                      onHover={handleStarHover}
+                      onLeave={handleStarLeave}
+                    />
+                    {ratings[product.productId] > 0 && (
+                      <p className="text-xs text-red-500 mt-1 font-medium motion-safe:animate-pulse">
+                        You rated this {ratings[product.productId]} star{ratings[product.productId] > 1 ? 's' : ''}!
+                      </p>
+                    )}
+                  </div>
                   <div className="space-y-4 mt-auto">
                     <div className="flex justify-between items-center">
                       {hasDiscount ? (
@@ -296,6 +386,24 @@ export default function Products() {
             >
               {selectedProduct.name}
             </h2>
+            <div className="mb-4">
+              <p className={`text-sm font-semibold ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
+                Your Rating:
+              </p>
+              <StarRating
+                productId={selectedProduct.productId}
+                rating={ratings[selectedProduct.productId] ?? 0}
+                hovered={hoveredStars[selectedProduct.productId] ?? 0}
+                onRate={handleRate}
+                onHover={handleStarHover}
+                onLeave={handleStarLeave}
+              />
+              {ratings[selectedProduct.productId] > 0 && (
+                <p className="text-sm text-red-500 mt-2 font-semibold motion-safe:animate-pulse">
+                  You rated this {ratings[selectedProduct.productId]} star{ratings[selectedProduct.productId] > 1 ? 's' : ''}!
+                </p>
+              )}
+            </div>
             <p
               className={`${darkMode ? 'text-gray-300' : 'text-gray-600'} text-lg transition-colors duration-300`}
             >
