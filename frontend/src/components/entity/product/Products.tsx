@@ -45,7 +45,7 @@ function StarRating({ productName, rating, hoveredRating, onRate, onHover, size 
           }}
           onMouseEnter={() => onHover(star)}
           onMouseLeave={() => onHover(0)}
-          className={`${starClass} transition-all duration-150 transform hover:scale-125 active:scale-150 focus:outline-none cursor-pointer`}
+          className={`${starClass} transition-all duration-150 transform hover:scale-125 active:scale-150 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 rounded cursor-pointer`}
           style={{
             color: displayRating >= star ? '#ef4444' : '#9ca3af',
             filter: displayRating >= star
