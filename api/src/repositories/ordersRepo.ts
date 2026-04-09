@@ -27,6 +27,23 @@ export class OrdersRepository {
   }
 
   /**
+   * Count orders by branch
+   */
+  async countByBranch(): Promise<Array<{ branchId: number; count: number }>> {
+    try {
+      const rows = await this.db.all<{ branch_id: number; count: number }>(
+        'SELECT branch_id, COUNT(*) as count FROM orders GROUP BY branch_id ORDER BY branch_id',
+      );
+      return rows.map((row) => ({
+        branchId: row.branch_id,
+        count: row.count,
+      }));
+    } catch (error) {
+      handleDatabaseError(error);
+    }
+  }
+
+  /**
    * Get order by ID
    */
   async findById(id: number): Promise<Order | null> {

@@ -37,6 +37,32 @@
  *             schema:
  *               $ref: '#/components/schemas/Order'
  *
+ * /api/orders/count/by-branch:
+ *   get:
+ *     summary: Get count of orders grouped by branch
+ *     tags: [Orders]
+ *     responses:
+ *       200:
+ *         description: Order count by branch
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   branchId:
+ *                     type: integer
+ *                     description: Branch ID
+ *                   count:
+ *                     type: integer
+ *                     description: Number of orders for this branch
+ *               example:
+ *                 - branchId: 1
+ *                   count: 12
+ *                 - branchId: 2
+ *                   count: 8
+ *
  * /api/orders/{id}:
  *   get:
  *     summary: Get an order by ID
@@ -130,6 +156,17 @@ router.get('/', async (req, res, next) => {
     }
 
     res.json(orders);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get order count by branch
+router.get('/count/by-branch', async (req, res, next) => {
+  try {
+    const repo = await getOrdersRepository();
+    const countByBranch = await repo.countByBranch();
+    res.json(countByBranch);
   } catch (error) {
     next(error);
   }

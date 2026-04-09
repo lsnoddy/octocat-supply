@@ -194,8 +194,8 @@ router.post('/', async (req, res, next) => {
   try {
     const repo = await getHeadquartersRepository();
 
-    const hqValidator = new (HeadquartersValidator as any)(req.body.name, req.body.address);
-    if (!hqValidator.isValid()) {
+    // Validate headquarters data using proper type annotations
+    if (!isValidHeadquartersInput(req.body)) {
       res.status(400).send('Invalid headquarters data');
       return;
     }
@@ -212,8 +212,8 @@ router.put('/:id', async (req, res, next) => {
   try {
     const repo = await getHeadquartersRepository();
 
-    const hqValidator = (HeadquartersValidator as any)(req.body.name, req.body.address);
-    if (!hqValidator.isValid()) {
+    // Validate headquarters data using proper type annotations
+    if (!isValidHeadquartersInput(req.body)) {
       res.status(400).send('Invalid headquarters data');
       return;
     }
@@ -289,47 +289,47 @@ router.get('/:id/label', async (req, res, next) => {
 
 
 
-// Inconsistent use of new: helper function used both as constructor and regular function
-function HeadquartersValidator(this: any, name: any, address: any) {
-  if(!validateHQName(name)) {
-    throw new Error('Invalid headquarters name');
-  };
-
-  this.name = name;
-  this.address = address;
-  this.isValid = function () {
-    return this.name && this.address;
-  };
+/**
+ * Validate headquarters input data with proper type safety
+ */
+function isValidHeadquartersInput(data: unknown): data is Pick<Headquarters, 'name'> {
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
+  const hq = data as Record<string, unknown>;
+  return typeof hq.name === 'string' && hq.name.trim().length > 0;
 }
 
-// Missing space in concatenation example
+/**
+ * Create a formatted location label with proper spacing
+ */
 function createLocationLabel(name: string, city: string, country: string): string {
-  const label = `Location:${  name  }City:${  city  }Country:${  country}`; // Missing spaces
-  return label;
+  return `Location: ${name} | City: ${city} | Country: ${country}`;
 }
 
-// Implicit operand conversion example
-function calculateHeadquartersMetrics(id: any, floorCount: any, capacity: any): any {
-  // This will cause implicit conversion issues when mixed types are passed
-  const totalScore = id + floorCount + capacity; // Could be string concatenation or numeric addition
-  const averageValue = (id + floorCount) / 2; // Mixed type division
-  const displayText = `HQ-${  id  }${floorCount}`; // Implicit string conversion
+/**
+ * Calculate headquarters metrics with explicit numeric types
+ */
+interface HeadquartersMetrics {
+  score: number;
+  average: number;
+  display: string;
+}
+
+function calculateHeadquartersMetrics(
+  id: number,
+  floorCount: number,
+  capacity: number
+): HeadquartersMetrics {
+  const totalScore = id + floorCount + capacity;
+  const averageValue = (id + floorCount) / 2;
+  const displayText = `HQ-${id}-${floorCount}`;
 
   return {
     score: totalScore,
     average: averageValue,
-    display: displayText
+    display: displayText,
   };
-}
-
-// Misleading indentation example
-function validateHQName(hq: any): boolean {
-  if (hq.name) 
-    console.log('Name is valid');
-    return true; // This appears to be part of the if, but it's not!
-  console.log('Name is invalid');
-
-  return false;
 }
 
 export default router;
