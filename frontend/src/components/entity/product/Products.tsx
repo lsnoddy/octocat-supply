@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useQuery } from 'react-query';
 import { api } from '../../../api/config';
 import { useTheme } from '../../../context/ThemeContext';
+import StarRating from './StarRating';
 
 interface Product {
   productId: number;
@@ -26,6 +27,7 @@ export default function Products() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [ratings, setRatings] = useState<Record<number, number>>({});
   const { data: products, isLoading, error } = useQuery('products', fetchProducts);
   const { darkMode } = useTheme();
 
@@ -64,6 +66,10 @@ export default function Products() {
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
     setShowModal(true);
+  };
+
+  const handleRate = (productId: number, star: number) => {
+    setRatings((prev) => ({ ...prev, [productId]: star }));
   };
 
   if (isLoading) {
@@ -184,6 +190,13 @@ export default function Products() {
                   >
                     {product.name}
                   </h3>
+                  <div className="mb-3">
+                    <StarRating
+                      productId={product.productId}
+                      rating={ratings[product.productId] || 0}
+                      onRate={handleRate}
+                    />
+                  </div>
                   <p
                     className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-4 flex-grow transition-colors duration-300`}
                   >
@@ -292,10 +305,17 @@ export default function Products() {
               />
             </div>
             <h2
-              className={`text-2xl font-bold ${darkMode ? 'text-light' : 'text-gray-800'} mb-4 transition-colors duration-300`}
+              className={`text-2xl font-bold ${darkMode ? 'text-light' : 'text-gray-800'} mb-3 transition-colors duration-300`}
             >
               {selectedProduct.name}
             </h2>
+            <div className="mb-4">
+              <StarRating
+                productId={selectedProduct.productId}
+                rating={ratings[selectedProduct.productId] || 0}
+                onRate={handleRate}
+              />
+            </div>
             <p
               className={`${darkMode ? 'text-gray-300' : 'text-gray-600'} text-lg transition-colors duration-300`}
             >
